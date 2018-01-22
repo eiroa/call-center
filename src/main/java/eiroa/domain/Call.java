@@ -30,17 +30,22 @@ public class Call implements Runnable {
 
 	@Override
 	public void run() {
+		startCall();
 		try {
 			Thread.currentThread().sleep(this.duration*1000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		System.out.println("Call has ended after lasting " + this.duration + " seconds");
+		System.out.println("Call "+this.id+" has ended after lasting " + this.duration + " seconds");
+		callPicker.endCall();
+
 	}
 
+	/**
+	 * Comunication is expected to ocurr here
+	 */
 	public void startCall() {
-		this.duration = new Random().nextInt(6) +5;
-		this.run();
+		duration = this.callPicker.defineDuration();
 	}
 
 	public Call(Integer id) {

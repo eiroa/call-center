@@ -8,7 +8,7 @@ public enum Role {
 			case 1: return OPERATOR;
 			case 2: return SUPERVISOR;
 			case 3: return DIRECTOR;
-			default: return null;
+			default: return OPERATOR;
 		}
 	}
 }
