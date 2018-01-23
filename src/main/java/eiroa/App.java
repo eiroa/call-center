@@ -12,6 +12,9 @@ public class App {
 	public static void main(String[] args) {
 
 		Dispatcher dispatcher = new Dispatcher();
+		dispatcher.MAX_EMPLOYEE_HIERARCHY_VALUE = 3;
+		dispatcher.MAX_CONCURRENT_ACTIVE_CALLS = 10;
+		dispatcher.MIN_EMPLOYEE_HIERARCHY_VALUE = 1;
 
 		//define employees
 		Employee  employee1 = new Employee(1, Role.OPERATOR,dispatcher);
@@ -38,7 +41,7 @@ public class App {
 		dispatcher.getEmployees().put(Role.SUPERVISOR,Arrays.asList(supervisor1,supervisor2));
 		dispatcher.getEmployees().put(Role.DIRECTOR,Arrays.asList(director));
 
-		//Define calls
+		//Define calls and dispatch them
 		dispatcher.dispatchCall(new Call(1));
 		dispatcher.dispatchCall(new Call(2));
 		dispatcher.dispatchCall(new Call(3));
@@ -56,10 +59,6 @@ public class App {
 		dispatcher.dispatchCall(new Call(99));
 		dispatcher.dispatchCall(new Call(999));
 		dispatcher.dispatchCall(new Call(9999));
-
-
-
-
 	}
 
 }

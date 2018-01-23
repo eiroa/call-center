@@ -15,9 +15,9 @@ import eiroa.exception.MaxConcurrentActiveCallsCapacityException;
 import eiroa.exception.NoAvailableOperatorsException;
 
 public class Dispatcher {
-	private static final Integer MAX_CONCURRENT_ACTIVE_CALLS = 10;
-	private static Integer MAX_EMPLOYEE_HIERARCHY_VALUE = 3;
-	private static Integer MIN_EMPLOYEE_HIERARCHY_VALUE = 1;
+	public Integer MAX_CONCURRENT_ACTIVE_CALLS;
+	public Integer MAX_EMPLOYEE_HIERARCHY_VALUE;
+	public Integer MIN_EMPLOYEE_HIERARCHY_VALUE;
 	private Map<Role, List<Employee>> employees = new HashMap<Role, List<Employee>>() {{
 		put(Role.OPERATOR, Arrays.asList());
 		put(Role.SUPERVISOR, Arrays.asList());
@@ -25,7 +25,6 @@ public class Dispatcher {
 	}};
 
 	private ExecutorService executorService = Executors.newFixedThreadPool(10);
-
 	private Map<Integer, Future<Call>> callsInProgress = new HashMap<>();
 	private List<Call> onHoldCalls = new LinkedList<>();
 	private List<Call> finishedCalls = new LinkedList<>();
@@ -38,7 +37,7 @@ public class Dispatcher {
 		}
 	}
 
-	private void processDispatchment(Call call) {
+	public void processDispatchment(Call call) {
 		validateMaxConcurrentActiveCalls(call);
 		searchAvailableEmployee(MIN_EMPLOYEE_HIERARCHY_VALUE).flatMap(callPicker -> {
 			initiateCall(callPicker, call);
@@ -46,20 +45,20 @@ public class Dispatcher {
 		}).orElseThrow(NoAvailableOperatorsException::new);
 	}
 
-	private void validateMaxConcurrentActiveCalls(Call call) {
+	public void validateMaxConcurrentActiveCalls(Call call) {
 		if (callsInProgress.size() >= MAX_CONCURRENT_ACTIVE_CALLS) {
 			System.out.println("Dispatcher cannot process more active calls , adding call " + call.getId() + " to on Hold Calls");
 			throw new MaxConcurrentActiveCallsCapacityException();
 		}
 	}
 
-	private void initiateCall(Employee callPicker, Call call) {
+	public void initiateCall(Employee callPicker, Call call) {
 		callPicker.pickupCall(call);
 		call.setCallPicker(callPicker);
 		this.callsInProgress.put(call.getId(), (Future<Call>) executorService.submit(call));
 	}
 
-	private Optional<Employee> searchAvailableEmployee(Integer hierarchy) {
+	public Optional<Employee> searchAvailableEmployee(Integer hierarchy) {
 		Optional<Employee> result = employees.get(Role.getRoleByHierarchy(hierarchy)).stream().filter(employee -> !employee.isOnCall()).findFirst();
 		if (result.isPresent() || hierarchy > MAX_EMPLOYEE_HIERARCHY_VALUE) {
 			return result;
