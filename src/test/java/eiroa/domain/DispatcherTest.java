@@ -8,9 +8,11 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import com.sun.xml.internal.ws.policy.AssertionSet;
@@ -28,6 +30,18 @@ public class DispatcherTest {
 	private Call call1;
 	private Integer callId1;
 	private Call call2;
+	private Call call3;
+	private Call call4;
+	private Call call5;
+	private Call call6;
+	private Call call7;
+	private Call call8;
+	private Call call9;
+	private Call call10;
+
+	private Integer availableEmployees;
+	private Integer totalCalls;
+
 	private Integer callId2;
 	private Optional<Employee> callPicker;
 
@@ -60,6 +74,9 @@ public class DispatcherTest {
 
 	@Test
 	public void dispatcherCorrectlyProcesses10Calls(){
+		givenXCallsAndYAvailableEmployees(10,3);
+		whenCallsAreDispatched(Arrays.asList(call1,call2,call3,call4,call5,call6,call7,call8,call9,call10));
+		thenValidateThatDispatcherHasAssignedCallsToAvailableEmployeesAndQueedTheRest();
 	}
 
 	@Test
@@ -74,6 +91,31 @@ public class DispatcherTest {
 		givenNoAvailableEmployees();
 		thenANoAvailableEmployeesExceptionIsRaised();
 	}
+
+	private void whenCallsAreDispatched(List<Call> calls) {
+		calls.forEach(call-> dispatcher.dispatchCall(call));
+	}
+
+	private void givenXCallsAndYAvailableEmployees(Integer calls, Integer employees) {
+		call1 = new Call(callId1);
+		call2 = new Call(callId2);
+		call3 = new Call(callId2+1);
+		call4 = new Call(callId1+2);
+		call5 = new Call(callId1+3);
+		call6 = new Call(callId1+4);
+		call7 = new Call(callId1+5);
+		call8 = new Call(callId1+6);
+		call9 = new Call(callId1+7);
+		call10 = new Call(callId1+8);
+		totalCalls=calls;
+		availableEmployees=employees;
+	}
+
+	private void thenValidateThatDispatcherHasAssignedCallsToAvailableEmployeesAndQueedTheRest() {
+		assertEquals(dispatcher.getOnHoldCalls().size(),totalCalls-availableEmployees);
+		assertEquals(dispatcher.getCallsInProgress().size(),availableEmployees.intValue());
+	}
+
 
 	private void thenVerifyThatObtainedEmployeeIsOperator() {
 		Assertions.assertTrue(callPicker.isPresent());
