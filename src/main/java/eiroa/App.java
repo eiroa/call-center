@@ -1,10 +1,6 @@
 package eiroa;
 
 import java.util.Arrays;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.IntStream;
 
 import eiroa.domain.Call;
 import eiroa.domain.Dispatcher;
@@ -21,11 +17,25 @@ public class App {
 		Employee  employee1 = new Employee(1, Role.OPERATOR,dispatcher);
 		Employee  employee2 = new Employee(2, Role.OPERATOR,dispatcher);
 		Employee  employee3 = new Employee(3, Role.OPERATOR,dispatcher);
-		Employee  supervisor = new Employee(4, Role.SUPERVISOR,dispatcher);
-		Employee  director = new Employee(5, Role.DIRECTOR,dispatcher);
+		Employee  employee4 = new Employee(10, Role.OPERATOR,dispatcher);
+		Employee  employee5 = new Employee(20, Role.OPERATOR,dispatcher);
+		Employee  employee6 = new Employee(30, Role.OPERATOR,dispatcher);
+		Employee  employee7 = new Employee(40, Role.OPERATOR,dispatcher);
+		Employee  employee8 = new Employee(50, Role.OPERATOR,dispatcher);
+		Employee  supervisor1 = new Employee(4, Role.SUPERVISOR,dispatcher);
+		Employee  supervisor2 = new Employee(6, Role.SUPERVISOR,dispatcher);
+		Employee  director = new Employee(0, Role.DIRECTOR,dispatcher);
+
+
+		/*employee1.setOnCall();
+		employee2.setOnCall();
+		employee3.setOnCall();
+		supervisor.setOnCall();
+		director.setOnCall();*/
+
 		// register them in dispatcher
-		dispatcher.getEmployees().put(Role.OPERATOR, Arrays.asList(employee1,employee2,employee3));
-		dispatcher.getEmployees().put(Role.SUPERVISOR,Arrays.asList(supervisor));
+		dispatcher.getEmployees().put(Role.OPERATOR, Arrays.asList(employee1,employee2,employee3,employee4,employee5,employee6));
+		dispatcher.getEmployees().put(Role.SUPERVISOR,Arrays.asList(supervisor1,supervisor2));
 		dispatcher.getEmployees().put(Role.DIRECTOR,Arrays.asList(director));
 
 		//Define calls
@@ -35,19 +45,20 @@ public class App {
 		dispatcher.dispatchCall(new Call(4));
 		dispatcher.dispatchCall(new Call(5));
 		dispatcher.dispatchCall(new Call(10));
+		dispatcher.dispatchCall(new Call(20));
+
+		dispatcher.dispatchCall(new Call(40));
+		dispatcher.dispatchCall(new Call(50));
+		dispatcher.dispatchCall(new Call(100));
+		dispatcher.dispatchCall(new Call(200));
+
+		dispatcher.dispatchCall(new Call(9));
+		dispatcher.dispatchCall(new Call(99));
+		dispatcher.dispatchCall(new Call(999));
+		dispatcher.dispatchCall(new Call(9999));
 
 
-		//
-		try {
-			Thread.sleep(10500);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
 
-		}
-
-
-		System.out.println("Finished calls: " + dispatcher.getFinishedCalls().size() );
-		System.out.println("InProgress Calls calls: " + dispatcher.getCallsInProgress().size());
 
 	}
 

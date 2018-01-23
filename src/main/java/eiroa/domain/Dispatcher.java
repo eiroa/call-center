@@ -6,11 +6,16 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import eiroa.exception.MaxConcurrentActiveCallsCapacityException;
+import eiroa.exception.NoAvailableOperatorsException;
+
 public class Dispatcher {
+	private static final Integer MAX_CONCURRENT_ACTIVE_CALLS = 10;
 	private static Integer MAX_EMPLOYEE_HIERARCHY_VALUE = 3;
 	private static Integer MIN_EMPLOYEE_HIERARCHY_VALUE = 1;
 	private Map<Role, List<Employee>> employees = new HashMap<Role, List<Employee>>() {{
@@ -22,15 +27,30 @@ public class Dispatcher {
 	private ExecutorService executorService = Executors.newFixedThreadPool(10);
 
 	private Map<Integer, Future<Call>> callsInProgress = new HashMap<>();
-	private List<Call> onHoldCalls;
+	private List<Call> onHoldCalls = new LinkedList<>();
 	private List<Call> finishedCalls = new LinkedList<>();
 
-	public void dispatchCall(Call call) {
-		Optional<Employee> availablePicker = searchAvailableEmployee(MIN_EMPLOYEE_HIERARCHY_VALUE);
-		availablePicker.flatMap(callPicker -> {
+	public synchronized void dispatchCall(Call call) {
+		try {
+			processDispatchment(call);
+		} catch (NoAvailableOperatorsException | MaxConcurrentActiveCallsCapacityException e) {
+			onHoldCalls.add(call);
+		}
+	}
+
+	private void processDispatchment(Call call) {
+		validateMaxConcurrentActiveCalls(call);
+		searchAvailableEmployee(MIN_EMPLOYEE_HIERARCHY_VALUE).flatMap(callPicker -> {
 			initiateCall(callPicker, call);
 			return Optional.of(callPicker);
-		});
+		}).orElseThrow(NoAvailableOperatorsException::new);
+	}
+
+	private void validateMaxConcurrentActiveCalls(Call call) {
+		if (callsInProgress.size() >= MAX_CONCURRENT_ACTIVE_CALLS) {
+			System.out.println("Dispatcher cannot process more active calls , adding call " + call.getId() + " to on Hold Calls");
+			throw new MaxConcurrentActiveCallsCapacityException();
+		}
 	}
 
 	private void initiateCall(Employee callPicker, Call call) {
@@ -40,7 +60,7 @@ public class Dispatcher {
 	}
 
 	private Optional<Employee> searchAvailableEmployee(Integer hierarchy) {
-		Optional<Employee> result = employees.get(Role.getRoleByHierarchy(hierarchy)).stream().filter(employee -> !employee.getOnCall()).findFirst();
+		Optional<Employee> result = employees.get(Role.getRoleByHierarchy(hierarchy)).stream().filter(employee -> !employee.isOnCall()).findFirst();
 		if (result.isPresent() || hierarchy > MAX_EMPLOYEE_HIERARCHY_VALUE) {
 			return result;
 		} else {
@@ -48,9 +68,23 @@ public class Dispatcher {
 		}
 	}
 
-	public void endCall(Call finishedCall) {
+	public synchronized void endCall(Call finishedCall) {
 		this.callsInProgress.remove(finishedCall.getId());
 		this.finishedCalls.add(finishedCall);
+		finishedCall.getCallPicker().setAvailable();
+		checkForOnHoldCalls();
+		System.out.println("Finished calls: " + finishedCalls.size());
+		System.out.println("InProgress Calls calls: " + callsInProgress.size());
+		System.out.println("OnHold Calls calls: " + onHoldCalls.size());
+	}
+
+	/**
+	 * Selects a random paused call and dispatch it, this method runs inmediatly after
+	 */
+	public void checkForOnHoldCalls() {
+		if (!this.onHoldCalls.isEmpty()) {
+			dispatchCall(this.onHoldCalls.remove(new Random().nextInt(this.onHoldCalls.size())));
+		}
 	}
 
 	public ExecutorService getExecutorService() {

@@ -9,7 +9,7 @@ public class Employee {
 	private Call callInProgress;
 	private Dispatcher dispatcher;
 
-	public void pickupCall(Call call) {
+	public synchronized void pickupCall(Call call) {
 		System.out.println("call "+ call.getId() + " picked up by "+ this.id + " with role: "+this.role);
 		this.onCall = true;
 		callInProgress = call;
@@ -20,12 +20,21 @@ public class Employee {
 	}
 
 	public void endCall(){
-		onCall = false;
 		dispatcher.endCall(callInProgress);
-		callInProgress = null;
 	}
 
-	public Boolean getOnCall() {
+	public Employee(Integer id, Role role, Dispatcher dispatcher){
+		this.role = role;
+		this.id = id;
+		this.dispatcher = dispatcher;
+	}
+
+	public void setAvailable(){
+		this.onCall = false;
+		callInProgress= null;
+	}
+
+	public Boolean isOnCall() {
 		return onCall;
 	}
 
@@ -39,12 +48,6 @@ public class Employee {
 
 	public void setRole(Role role) {
 		this.role = role;
-	}
-
-	public Employee(Integer id, Role role, Dispatcher dispatcher){
-		this.role = role;
-		this.id = id;
-		this.dispatcher = dispatcher;
 	}
 
 	public Integer getId() {
