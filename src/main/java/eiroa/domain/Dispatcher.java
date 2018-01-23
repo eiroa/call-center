@@ -24,16 +24,19 @@ public class Dispatcher {
 		put(Role.DIRECTOR, Arrays.asList());
 	}};
 
-	private ExecutorService executorService = Executors.newFixedThreadPool(10);
+	private ExecutorService executorService;
 	private Map<Integer, Future<Call>> callsInProgress = new HashMap<>();
 	private List<Call> onHoldCalls = new LinkedList<>();
 	private List<Call> finishedCalls = new LinkedList<>();
+	private List<Call> cancelledCalls = new LinkedList<>();
 
 	public synchronized void dispatchCall(Call call) {
 		try {
 			processDispatchment(call);
-		} catch (NoAvailableOperatorsException | MaxConcurrentActiveCallsCapacityException e) {
+		} catch (NoAvailableOperatorsException e ) {
 			onHoldCalls.add(call);
+		}catch ( MaxConcurrentActiveCallsCapacityException e){
+			cancelledCalls.add(call);
 		}
 	}
 
@@ -46,8 +49,8 @@ public class Dispatcher {
 	}
 
 	public void validateMaxConcurrentActiveCalls(Call call) {
-		if (callsInProgress.size() >= MAX_CONCURRENT_ACTIVE_CALLS) {
-			System.out.println("Dispatcher cannot process more active calls , adding call " + call.getId() + " to on Hold Calls");
+		if (callsInProgress.size() + onHoldCalls.size() >= MAX_CONCURRENT_ACTIVE_CALLS) {
+			System.out.println("Dispatcher cannot process more calls , forcing close of call " + call.getId());
 			throw new MaxConcurrentActiveCallsCapacityException();
 		}
 	}
@@ -75,15 +78,20 @@ public class Dispatcher {
 		System.out.println("Finished calls: " + finishedCalls.size());
 		System.out.println("InProgress Calls calls: " + callsInProgress.size());
 		System.out.println("OnHold Calls calls: " + onHoldCalls.size());
+		System.out.println("Cancelled Calls calls: " + cancelledCalls.size());
 	}
 
 	/**
-	 * Selects a random paused call and dispatch it, this method runs inmediatly after
+	 * Selects a random paused call and dispatch it, this method runs inmediatly after an Employee became available
 	 */
 	public void checkForOnHoldCalls() {
 		if (!this.onHoldCalls.isEmpty()) {
 			dispatchCall(this.onHoldCalls.remove(new Random().nextInt(this.onHoldCalls.size())));
 		}
+	}
+	public Dispatcher(Integer maxConcurrentCallsValue){
+		this.MAX_CONCURRENT_ACTIVE_CALLS = maxConcurrentCallsValue;
+		executorService= Executors.newFixedThreadPool(maxConcurrentCallsValue);
 	}
 
 	public ExecutorService getExecutorService() {

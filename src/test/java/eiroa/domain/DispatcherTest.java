@@ -1,12 +1,8 @@
 package eiroa.domain;
 
-import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
-import org.junit.rules.ExpectedException;
-import org.mockito.Mockito;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -15,8 +11,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import com.sun.xml.internal.ws.policy.AssertionSet;
 
+import eiroa.exception.MaxConcurrentActiveCallsCapacityException;
 import eiroa.exception.NoAvailableOperatorsException;
 
 public class DispatcherTest {
@@ -52,9 +48,9 @@ public class DispatcherTest {
 
 	@Before
 	public void setUp() {
-		dispatcher = new Dispatcher();
 		minHierarchyValue = 1;
 		maxConcurrentActiveCalls = 10;
+		dispatcher = new Dispatcher(maxConcurrentActiveCalls);
 		maxHierarchyValue = 3;
 		dispatcher.MIN_EMPLOYEE_HIERARCHY_VALUE = minHierarchyValue;
 		dispatcher.MAX_EMPLOYEE_HIERARCHY_VALUE = maxHierarchyValue;
@@ -70,26 +66,59 @@ public class DispatcherTest {
 		dispatcher.getEmployees().put(Role.OPERATOR, Arrays.asList(employee));
 		dispatcher.getEmployees().put(Role.SUPERVISOR, Arrays.asList(supervisor));
 		dispatcher.getEmployees().put(Role.DIRECTOR, Arrays.asList(director));
+		call1 = new Call(callId1);
+		call2 = new Call(callId2);
+	}
+
+	@Test
+	public void raiseExceptionWhenMaximumActiveConcurrentCallsAreReached(){
+		givenAllAvailableEmployees();
+		givenAMaxConcurrentActiveCallsValue(1);
+		thenRaiseMAxConcurrentActiveCallsException();
+
 	}
 
 	@Test
 	public void dispatcherCorrectlyProcesses10Calls(){
 		givenXCallsAndYAvailableEmployees(10,3);
+		givenAMaxConcurrentActiveCallsValue(10);
 		whenCallsAreDispatched(Arrays.asList(call1,call2,call3,call4,call5,call6,call7,call8,call9,call10));
-		thenValidateThatDispatcherHasAssignedCallsToAvailableEmployeesAndQueedTheRest();
+		thenValidateThatDispatcherHasAssignedCallsToAvailableEmployeesAndQueedTheRestAsHoldedCalls();
 	}
 
 	@Test
 	public void yieldAnOperatorFirstFromEmployeesAvailable() {
 		givenAllAvailableEmployees();
 		whenTryingToGetAnAvailableEmployeeToPickUpCall();
-		thenVerifyThatObtainedEmployeeIsOperator();
+		thenVerifyThatObtainedEmployeeIsOfType(Role.OPERATOR);
 	}
 
 	@Test
 	public void raiseExceptionWhenNoAvailableEmployees() {
 		givenNoAvailableEmployees();
 		thenANoAvailableEmployeesExceptionIsRaised();
+	}
+
+	@Test
+	public void yieldADirectorWhenNoOperatorNorSupervisorsAreAvailable(){
+		givenNoAvailableOperatorsNorSupervisors();
+		whenTryingToGetAnAvailableEmployeeToPickUpCall();
+		thenVerifyThatObtainedEmployeeIsOfType(Role.DIRECTOR);
+	}
+
+	private void thenRaiseMAxConcurrentActiveCallsException() {
+		Assertions.assertThrows(MaxConcurrentActiveCallsCapacityException.class,()-> whenCallsAreProcessed(Arrays.asList(call1,call2)));
+	}
+
+	private void givenAMaxConcurrentActiveCallsValue(Integer value) {
+		maxConcurrentActiveCalls = value;
+		dispatcher.MAX_CONCURRENT_ACTIVE_CALLS =maxConcurrentActiveCalls;
+	}
+
+
+	private void givenNoAvailableOperatorsNorSupervisors() {
+		employee.setOnCall();
+		supervisor.setOnCall();
 	}
 
 	private void whenCallsAreDispatched(List<Call> calls) {
@@ -111,15 +140,15 @@ public class DispatcherTest {
 		availableEmployees=employees;
 	}
 
-	private void thenValidateThatDispatcherHasAssignedCallsToAvailableEmployeesAndQueedTheRest() {
+	private void thenValidateThatDispatcherHasAssignedCallsToAvailableEmployeesAndQueedTheRestAsHoldedCalls() {
 		assertEquals(dispatcher.getOnHoldCalls().size(),totalCalls-availableEmployees);
 		assertEquals(dispatcher.getCallsInProgress().size(),availableEmployees.intValue());
 	}
 
 
-	private void thenVerifyThatObtainedEmployeeIsOperator() {
+	private void thenVerifyThatObtainedEmployeeIsOfType(Role role) {
 		Assertions.assertTrue(callPicker.isPresent());
-		Assertions.assertEquals(callPicker.get().getRole(),Role.OPERATOR);
+		Assertions.assertEquals(callPicker.get().getRole(),role);
 	}
 
 	private void whenTryingToGetAnAvailableEmployeeToPickUpCall() {
@@ -134,11 +163,15 @@ public class DispatcherTest {
 
 
 	private void thenANoAvailableEmployeesExceptionIsRaised() {
-		Assertions.assertThrows(NoAvailableOperatorsException.class,()-> whenACallIsDispatch());
+		Assertions.assertThrows(NoAvailableOperatorsException.class,()-> whenACallIsProcessed(call1));
 	}
 
-	private void whenACallIsDispatch() {
-		dispatcher.processDispatchment(call1);
+	private void whenACallIsProcessed(Call call) {
+		dispatcher.processDispatchment(call);
+	}
+
+	private void whenCallsAreProcessed(List<Call>calls) {
+		calls.stream().forEach(call-> whenACallIsProcessed(call));
 	}
 
 	private void givenNoAvailableEmployees() {

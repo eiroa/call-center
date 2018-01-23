@@ -11,9 +11,8 @@ public class App {
 
 	public static void main(String[] args) {
 
-		Dispatcher dispatcher = new Dispatcher();
+		Dispatcher dispatcher = new Dispatcher(10);
 		dispatcher.MAX_EMPLOYEE_HIERARCHY_VALUE = 3;
-		dispatcher.MAX_CONCURRENT_ACTIVE_CALLS = 10;
 		dispatcher.MIN_EMPLOYEE_HIERARCHY_VALUE = 1;
 
 		//define employees
@@ -23,8 +22,6 @@ public class App {
 		Employee  employee4 = new Employee(10, Role.OPERATOR,dispatcher);
 		Employee  employee5 = new Employee(20, Role.OPERATOR,dispatcher);
 		Employee  employee6 = new Employee(30, Role.OPERATOR,dispatcher);
-		Employee  employee7 = new Employee(40, Role.OPERATOR,dispatcher);
-		Employee  employee8 = new Employee(50, Role.OPERATOR,dispatcher);
 		Employee  supervisor1 = new Employee(4, Role.SUPERVISOR,dispatcher);
 		Employee  supervisor2 = new Employee(6, Role.SUPERVISOR,dispatcher);
 		Employee  director = new Employee(0, Role.DIRECTOR,dispatcher);
